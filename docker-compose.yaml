@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7.0.6
+    platform: linux/amd64
+    ports:
+      - "6379:6379"
+    volumes:
+      - "redis:/data"
+  flower:
+      image: mher/flower
+      #environment:
+      #  - CELERY_BROKER_URL=redis://redis/0
+      #command: 'bash -c "flower --broker=redis://redis:6379/0"'
+      command: ["flower", "--broker=redis://redis/0"]
+      ports:
+          - "5555:5555"
+      depends_on:
+          - redis
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./workdir:/var/www/html
+      - ./docker/nginx/default.cfg:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/empty.png:/var/www/html/empty.png
+
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    ports:
+      - "8080:80"
+    command: /bin/bash -c "nginx -g 'daemon off;'"
+  fastapi_celery_redis:
+    build:
+      context: "."
+      dockerfile: docker/fastapi_celery_redis/Dockerfile
+    depends_on:
+      - "redis"
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/fastapi_celery_redis
+    command: >
+      gunicorn -c "python:config.gunicorn" --reload "fastapi_celery_redis.app:create_app()"
+  celery_worker:
+    build:
+      context: "."
+      dockerfile: docker/fastapi_celery_redis/Dockerfile
+    depends_on:
+      - "redis"
+    platform: linux/amd64
+
+    volumes:
+      - .:/fastapi_celery_redis
+    command: >
+      celery --app app.celery_worker worker --loglevel "${CELERY_LOG_LEVEL:-DEBUG}"
+volumes:
+  redis: {}

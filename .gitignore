@@ -1,0 +1,7 @@
+*.log
+*__pycache__*
+fontlist-v390.json
+results.db
+workdir/
+.venv/
+
