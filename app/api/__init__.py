@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 
 from ..api.routes import router as v1_router

@@ -1,1 +1,1 @@
-from . import wms_thumbnail_generate # noqa
+from . import wms_thumbnail_generate  # noqa

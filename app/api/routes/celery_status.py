@@ -1,6 +1,6 @@
-
-from fastapi import APIRouter
 from celery.result import AsyncResult
+from fastapi import APIRouter
+
 from ...celery_worker.app import app as celery_app
 from ...core.logging import logger
 
@@ -8,7 +8,7 @@ from ...core.logging import logger
 logger.name = __name__
 
 # Initialise the router
-router = APIRouter(tags=['celery'])
+router = APIRouter(tags=["celery"])
 
 
 @router.get("/tasks/{task_id}")
@@ -18,12 +18,10 @@ async def get_task_result(task_id: str):
     if task_result.ready():
         result = task_result.get()
         status = task_result.status
-        response_dict = {"status": status,
-                         "result": result}
-        if status == 'FAILURE':
+        response_dict = {"status": status, "result": result}
+        if status == "FAILURE":
             response_dict.update({"traceback": task_result.traceback})
 
         return response_dict
 
-    else:
-        return {"status": "PENDING"}
+    return {"status": "PENDING"}

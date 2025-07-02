@@ -1,6 +1,8 @@
 import logging
+
 from celery import Celery
-from kombu import Queue, Exchange
+from kombu import Exchange, Queue
+
 from ..core.config import settings
 
 logging.basicConfig(
@@ -12,13 +14,19 @@ logging.basicConfig(
     ],
 )
 
-app = Celery(__name__,
-             broker=settings.BROKER_URL,
-             backend=settings.RESULT_BACKEND,
-             broker_connection_retry_on_startup=True)
+app = Celery(
+    __name__,
+    broker=settings.BROKER_URL,
+    backend=settings.RESULT_BACKEND,
+    broker_connection_retry_on_startup=True,
+)
 # app.conf.set('LOCAL_IMAGE_PATH', settings.IMAGE_PATH)
-app.add_defaults({"LOCAL_IMAGE_PATH": settings.IMAGE_PATH,
-                  "THUMB_HOST_BASE_PATH": settings.THUMB_HOST_BASE_PATH})
+app.add_defaults(
+    {
+        "LOCAL_IMAGE_PATH": settings.IMAGE_PATH,
+        "THUMB_HOST_BASE_PATH": settings.THUMB_HOST_BASE_PATH,
+    }
+)
 
 
 app.conf.task_queues = (
@@ -28,10 +36,10 @@ app.conf.task_queues = (
         routing_key=settings.WMS_THUMBNAIL_QUEUE,
     ),
     Queue(
-        name='celery',
-        exchange=Exchange('celery'),
-        routing_key='celery',
+        name="celery",
+        exchange=Exchange("celery"),
+        routing_key="celery",
     ),
 )
 
-from . import tasks # noqa
+from . import tasks  # noqa

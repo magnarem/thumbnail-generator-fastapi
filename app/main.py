@@ -3,4 +3,6 @@ from .core.config import settings
 from .core.setup import create_application
 
 # Initialize and create the app
-app = create_application(router=router, settings=settings)
+def create_app():
+    app = create_application(router=router, settings=settings)
+    return app

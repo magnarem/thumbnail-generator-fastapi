@@ -1,39 +1,47 @@
+import contextlib
+import multiprocessing as mp
 import os
+
 import cartopy.crs as ccrs
+import matplotlib
 import matplotlib.pyplot as plt
-from owslib.wms import WebMapService
+from celery import states
+
 # from owslib.util import ParseError, ServiceException
 # from lxml.etree import XMLSyntaxError, Error
 # from requests.exceptions import Timeout
-
-from celery.exceptions import TaskError  # , TimeoutError
+from celery.exceptions import (
+    SoftTimeLimitExceeded,
+    TaskError,  # , TimeoutError
+)
 from celery.utils.log import get_task_logger
-from celery.exceptions import SoftTimeLimitExceeded
-from celery import states
-import matplotlib
+from owslib.wms import WebMapService
 
-import multiprocessing as mp
 from ..app import app
 
-matplotlib.use('agg')
+matplotlib.use("agg")
 logger = get_task_logger(__name__)
 
-blackListLayers = ('latitude', 'longitude', 'lat', 'lon', 'MS')
+blacklist_layers = ("latitude", "longitude", "lat", "lon", "MS")
 
 # logger = logging.getLogger(__name__)
 WMS_GENERATE_THUMBNAIL_TASK = "metsis.create_wms_thumbnail_task"
 
 
-@app.task(name=WMS_GENERATE_THUMBNAIL_TASK,
-          bind=True, soft_time_limit=600, max_retries=3,
-          ignore_result=False)
+@app.task(
+    name=WMS_GENERATE_THUMBNAIL_TASK,
+    bind=True,
+    soft_time_limit=600,
+    max_retries=3,
+    ignore_result=False,
+)
 def create_wms_thumbnail_task(self, wmsconfig):
     logger.info("Staring generate thumbnail_task:")
 
     # Extracting required fields
-    id = wmsconfig['id']
-    wms_url = wmsconfig['wms_url']
-    path = wmsconfig['path']
+    id = wmsconfig["id"]
+    wms_url = wmsconfig["wms_url"]
+    path = wmsconfig["path"]
 
     # Optional field default values
     wms_layer: str = None
@@ -46,41 +54,35 @@ def create_wms_thumbnail_task(self, wmsconfig):
     wms_layers_mmd: list = []
 
     # Extracting optional fields
-    if 'wms_layer' in wmsconfig.keys():
-        wms_layer = wmsconfig['wms_layer']
+    if "wms_layer" in wmsconfig:
+        wms_layer = wmsconfig["wms_layer"]
         logger.debug("Got overriden wms_layer: %s", wms_layer)
-    if 'wms_style' in wmsconfig.keys():
-        wms_style = wmsconfig['wms_style']
+    if "wms_style" in wmsconfig:
+        wms_style = wmsconfig["wms_style"]
         logger.debug("Got overriden wms_style: %s", wms_style)
-    if 'wms_zoom_level' in wmsconfig.keys():
-        wms_zoom_level = wmsconfig['wms_zoom_level']
+    if "wms_zoom_level" in wmsconfig:
+        wms_zoom_level = wmsconfig["wms_zoom_level"]
         logger.debug("Got overriden wms_zoom_level: %s", wms_zoom_level)
-    if 'wms_timeout' in wmsconfig.keys():
-        wms_timeout  = wmsconfig['wms_timeout']
+    if "wms_timeout" in wmsconfig:
+        wms_timeout = wmsconfig["wms_timeout"]
         logger.debug("Got overriden wms_timeout: %s", wms_timeout)
-    if 'add_coastlines' in wmsconfig.keys():
-        add_coastlines = wmsconfig['add_coastlines']
+    if "add_coastlines" in wmsconfig:
+        add_coastlines = wmsconfig["add_coastlines"]
         logger.debug("Got overriden add_coastlines: %s", add_coastlines)
-    if 'projection' in wmsconfig.keys():
-        projection = wmsconfig['projection']
+    if "projection" in wmsconfig:
+        projection = wmsconfig["projection"]
         logger.debug("Got overriden projection: %s", projection)
-    if 'thumbnail_extent' in wmsconfig.keys():
-        thumbnail_extent = wmsconfig['thumbnail_extent']
+    if "thumbnail_extent" in wmsconfig:
+        thumbnail_extent = wmsconfig["thumbnail_extent"]
         logger.debug("Got overriden thumbnail_extent: %s", thumbnail_extent)
-    if 'wms_layers_mmd' in wmsconfig.keys():
-        wms_layers_mmd = wmsconfig['wms_layers_mmd']
+    if "wms_layers_mmd" in wmsconfig:
+        wms_layers_mmd = wmsconfig["wms_layers_mmd"]
         logger.debug("Got wms_layers_mmd list: %s", wms_layers_mmd)
 
     # Log some info
-    logger.info(
-        f"Got thumb path: {path}"
-    )
-    logger.info(
-        f"Got wms_url: {wms_url}"
-    )
-    logger.info(
-        f"Got id: {id}"
-    )
+    logger.info(f"Got thumb path: {path}")
+    logger.info(f"Got wms_url: {wms_url}")
+    logger.info(f"Got id: {id}")
     base_path = app.conf.get("THUMB_HOST_BASE_PATH")
     image_path = app.conf.get("LOCAL_IMAGE_PATH")
     full_path = f"{base_path}{image_path}{path}"
@@ -88,13 +90,22 @@ def create_wms_thumbnail_task(self, wmsconfig):
     try:
         # Your task code here
 
-        create_wms_thumbnail(wms_url, full_path, wms_layer=wms_layer,
-                             wms_style=wms_style, wms_zoom_level=wms_zoom_level,
-                             wms_timeout=wms_timeout, add_coastlines=add_coastlines,
-                             projection=projection, wms_layers_mmd=wms_layers_mmd,
-                             thumbnail_extent=thumbnail_extent)
-        self.update_state(state=states.SUCCESS,
-                          meta=f"WMS Thumbnail {full_path} generated successfully")
+        create_wms_thumbnail(
+            wms_url,
+            full_path,
+            wms_layer=wms_layer,
+            wms_style=wms_style,
+            wms_zoom_level=wms_zoom_level,
+            wms_timeout=wms_timeout,
+            add_coastlines=add_coastlines,
+            projection=projection,
+            wms_layers_mmd=wms_layers_mmd,
+            thumbnail_extent=thumbnail_extent,
+        )
+        self.update_state(
+            state=states.SUCCESS,
+            meta=f"WMS Thumbnail {full_path} generated successfully",
+        )
         return {"message": f"WMS Thumbnail {full_path} generated successfully"}
     # except Timeout as e:
     #     raise TimeoutError(f"Could not read wms capability: {str(e)}")
@@ -112,26 +123,38 @@ def create_wms_thumbnail_task(self, wmsconfig):
         except self.MaxRetriesExceededError:
             return "Task failed after maximum retries"
     except Exception as e:
-        self.update_state(state=states.FAILURE,
-                          meta={'exc_type': type(e).__name__,
-                                'exc_message': str(e)})
+        self.update_state(
+            state=states.FAILURE,
+            meta={"exc_type": type(e).__name__, "exc_message": str(e)},
+        )
         logger.debug("Exception: %s", str(e))
 
-        raise TaskError(str(e))
+        raise TaskError(str(e)) from e
 
 
-def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
-                         wms_zoom_level=0, wms_timeout=120,
-                         add_coastlines=None, projection=None,
-                         wms_layers_mmd=[], thumbnail_extent=None):
-    """ Create a base64 encoded thumbnail by means of cartopy.
+def create_wms_thumbnail(
+    url,
+    full_path,
+    wms_layer=None,
+    wms_style=None,
+    wms_zoom_level=0,
+    wms_timeout=120,
+    add_coastlines=None,
+    projection=None,
+    wms_layers_mmd=None,
+    thumbnail_extent=None,
+):
+    """Create a base64 encoded thumbnail by means of cartopy.
 
-        Args:
-            url: wms GetCapabilities document
+    Args:
+        url: wms GetCapabilities document
 
-        Returns:
-            thumbnail_b64: base64 string representation of image
+    Returns:
+        thumbnail_b64: base64 string representation of image
     """
+    if wms_layers_mmd is None:
+        wms_layers_mmd = []
+
     logger.debug("%s. Starting wms url %s", mp.current_process().name, url)
     wms_layer = wms_layer
     wms_style = wms_style
@@ -143,9 +166,10 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
 
     # map projection string to ccrs projection
     if isinstance(map_projection, str):
-        if map_projection == 'PolarStereographic':
-            map_projection = ccrs.Stereographic(central_longitude=0.0, central_latitude=90.,
-                                                true_scale_latitude=60.)
+        if map_projection == "PolarStereographic":
+            map_projection = ccrs.Stereographic(
+                central_longitude=0.0, central_latitude=90.0, true_scale_latitude=60.0
+            )
         else:
             map_projection = getattr(ccrs, map_projection)()
     if map_projection is None:
@@ -154,9 +178,8 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
 
     # Pick the first layer from the mmd layers list
     wms_layer_mmd = None
-    if wms_layers_mmd is not None:
-        if len(wms_layers_mmd) > 0:
-            wms_layer_mmd = wms_layers_mmd[0]
+    if wms_layers_mmd is not None and len(wms_layers_mmd) > 0:
+        wms_layer_mmd = wms_layers_mmd[0]
 
     """Some debugging"""
     logger.debug("wms_layer: %s", wms_layer)
@@ -168,11 +191,11 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
     logger.debug("thumbnail_extent: %s", thumbnail_extent)
 
     # Check if url is list or string, and process therafter
-    if (isinstance(url, list)):
+    if isinstance(url, list):
         url = url[0]  # Extract first url
 
     # Make sure url does not provide request attributes
-    url = url.split('?')[0]
+    url = url.split("?")[0]
 
     if url.startswith("http://thredds.nersc"):
         url.replace("http:", "https:")
@@ -193,7 +216,7 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
         wms = WebMapService(url, version="1.3.0", timeout=int(wms_timeout))
     except Exception as e:
         wms = None
-        raise Exception("Could not read wms capability: ", e)
+        raise Exception("Could not read wms capability: ", e) from e
 
     """Some debugging"""
     logger.debug("Title: %s", wms.identification.title)
@@ -223,19 +246,19 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
         elif wms_layer_mmd in available_layers_titles:
             idx = available_layers_titles.index(wms_layer_mmd)
             wms_layer = available_layers[idx]
-            logger.debug("Matched MMD wms layer title %s, found layer name: %s",
-                         wms_layer_mmd, wms_layer)
+            logger.debug(
+                "Matched MMD wms layer title %s, found layer name: %s",
+                wms_layer_mmd,
+                wms_layer,
+            )
         # Fallback. Choose the first from capabilities after removing blacklisted layers
         else:
-            for layer in blackListLayers:
-                try:
+            with contextlib.suppress(ValueError):
+                for layer in blacklist_layers:
                     available_layers.remove(layer)
-                except ValueError:
-                    pass
-            wms_layer = available_layers[0]
-        logger.debug(
-            'Creating WMS thumbnail for layer: {}'.format(wms_layer))
-    logger.debug("layer: %s", wms_layer)
+                wms_layer = available_layers[0]
+    logger.debug(f"Creating WMS thumbnail for layer: {wms_layer}")
+    # logger.debug("layer: %s", wms_layer)
     # logger.debug("Abstract: ", wms_layer.abstract)
     # logger.debug("BBox: ", wms_layer.boundingBoxWGS84)
     # logger.debug("CRS: ", wms_layer.crsOptions)
@@ -244,7 +267,7 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
 
     # Checking styles
     available_styles = list(wms.contents[wms_layer].styles.keys())
-    logger.debug("Input style: %s  . Available Styles: %s", wms_style, available_styles)
+    logger.debug(f"Input style: {wms_style}  . Available Styles: {available_styles}")
     if available_styles:
         if wms_style not in available_styles:
             wms_style = [available_styles[0]]
@@ -261,10 +284,12 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
         # cartopy_extent = [wms_extent[0], wms_extent[2],
         #                  wms_extent[1], wms_extent[3]]
 
-        cartopy_extent_zoomed = [wms_extent[0] - wms_zoom_level,
-                                 wms_extent[2] + wms_zoom_level,
-                                 wms_extent[1] - wms_zoom_level,
-                                 wms_extent[3] + wms_zoom_level]
+        cartopy_extent_zoomed = [
+            wms_extent[0] - wms_zoom_level,
+            wms_extent[2] + wms_zoom_level,
+            wms_extent[1] - wms_zoom_level,
+            wms_extent[3] + wms_zoom_level,
+        ]
     else:
         cartopy_extent_zoomed = thumbnail_extent
 
@@ -293,8 +318,8 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
         fig = None
         ax = None
         wms = None
-        plt.close('all')
-        raise Exception("Could not plot wms: ", e)
+        plt.close("all")
+        raise Exception("Could not plot wms: ", e) from e
 
     # logger.debug(type(ax))
     # logger.debug(ax)
@@ -307,7 +332,7 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
     #        linewidth=0.5)
 
     # transparent background
-    ax.spines['geo'].set_visible(False)
+    ax.spines["geo"].set_visible(False)
     # ax.outline_patch.set_visible(False)
     # ax.background_patch.set_visible(False)
     fig.patch.set_alpha(0)
@@ -317,9 +342,9 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
     fig.set_dpi(100)
     # ax.background_patch.set_alpha(1)
     logger.debug("ax.add_wms(layer=%s, style=%s).", wms_layer, wms_style)
-    ax.add_wms(wms, layers=[wms_layer],
-               wms_kwargs={'transparent': False,
-                           'styles': wms_style})
+    ax.add_wms(
+        wms, layers=[wms_layer], wms_kwargs={"transparent": False, "styles": wms_style}
+    )
 
     if add_coastlines:
         ax.coastlines(resolution="50m", linewidth=0.5)
@@ -334,10 +359,10 @@ def create_wms_thumbnail(url, full_path, wms_layer=None, wms_style=None,
     directory, filename = os.path.split(full_path)
     create_directories(directory)
 
-    fig.savefig(full_path, format='png', bbox_inches='tight')
+    fig.savefig(full_path, format="png", bbox_inches="tight")
     plt.close(fig)
     plt.cla()
-    plt.close('all')
+    plt.close("all")
     del fig
     del ax
     del wms

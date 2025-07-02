@@ -1,10 +1,10 @@
+import logging
+import logging.config
+import os
+import sys
 
 import uvicorn
 import uvicorn.logging
-import logging
-import sys
-import os
-import logging.config
 
 FORMAT: str = "%(levelprefix)s [%(asctime)s] [%(process)s] \
 - %(name)s:%(lineno)d: %(message)s"
@@ -12,7 +12,7 @@ FORMAT: str = "%(levelprefix)s [%(asctime)s] [%(process)s] \
 DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
 
-ROOT_LEVEL = os.environ.get('PROD', "DEBUG")
+ROOT_LEVEL = os.environ.get("PROD", "DEBUG")
 
 LOGGING_CONFIG = {
     "version": 1,

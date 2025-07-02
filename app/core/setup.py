@@ -4,28 +4,27 @@ from typing import Any
 
 import anyio
 import fastapi
-
 from fastapi import APIRouter, FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 
 # from .db.database import Base, async_engine as engine
 # from ..models import *
-
 from .config import (
     AppSettings,
+    CelerySettings,
     DatabaseSettings,
     EnvironmentOption,
     EnvironmentSettings,
-    CelerySettings,
     settings,
 )
+
 # -------------- database --------------
 # async def create_tables() -> None:
 #     async with engine.begin() as conn:
 #         await conn.run_sync(Base.metadata.create_all)
 
-settings
+settings  # noqa: B018
 
 
 # -------------- application --------------
@@ -35,12 +34,7 @@ async def set_threadpool_tokens(number_of_tokens: int = 100) -> None:
 
 
 def lifespan_factory(
-    settings: (
-        DatabaseSettings
-        | AppSettings
-        | EnvironmentSettings
-        | CelerySettings
-    ),
+    settings: (DatabaseSettings | AppSettings | EnvironmentSettings | CelerySettings),
     # create_tables_on_start: bool = True,
 ) -> Callable[[FastAPI], _AsyncGeneratorContextManager[Any]]:  # type: ignore
     """Factory to create a lifespan async context manager for a FastAPI app."""
@@ -51,20 +45,16 @@ def lifespan_factory(
 
         # if isinstance(settings, DatabaseSettings) and create_tables_on_start:
         #     await create_tables()
-        settings
+        settings  # noqa: B018
         yield
+
     return lifespan
 
 
 # -------------- application --------------
 def create_application(
     router: APIRouter,
-    settings: (
-        DatabaseSettings
-        | AppSettings
-        | EnvironmentSettings
-        | CelerySettings
-    ),
+    settings: (DatabaseSettings | AppSettings | EnvironmentSettings | CelerySettings),
     create_tables_on_start: bool = True,
     **kwargs: Any,
 ) -> FastAPI:
@@ -118,7 +108,9 @@ def create_application(
     if isinstance(settings, EnvironmentSettings):
         kwargs.update({"docs_url": None, "redoc_url": None, "openapi_url": None})
 
-    lifespan = lifespan_factory(settings)  # , create_tables_on_start=create_tables_on_start)
+    lifespan = lifespan_factory(
+        settings
+    )  # , create_tables_on_start=create_tables_on_start)
 
     application = FastAPI(lifespan=lifespan, **kwargs)
     application.include_router(router)
@@ -139,9 +131,11 @@ def create_application(
 
             @docs_router.get("/openapi.json", include_in_schema=False)
             async def openapi() -> dict[str, Any]:
-                out: dict = get_openapi(title=application.title,
-                                        version=application.version,
-                                        routes=application.routes)
+                out: dict = get_openapi(
+                    title=application.title,
+                    version=application.version,
+                    routes=application.routes,
+                )
                 return out
 
             application.include_router(docs_router)

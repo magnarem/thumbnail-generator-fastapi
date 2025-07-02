@@ -16,7 +16,7 @@ class AppSettings(BaseSettings):
     LICENSE_NAME: str | None = config("LICENSE", default=None)
     CONTACT_NAME: str | None = config("CONTACT_NAME", default=None)
     CONTACT_EMAIL: str | None = config("CONTACT_EMAIL", default=None)
-    HOST: str = config("HOST", default="0.0.0.0")
+    HOST: str = config("HOST", default="localhost")
     PORT: str = config("PORT", default="8040")
     DEBUG: bool = config("DEBUG", default=True)
 
@@ -34,18 +34,22 @@ class DatabaseSettings(BaseSettings):
 
 class CelerySettings(BaseSettings):
     THUMB_HOST: str = config("THUMB_HOST", default="http://localhost:8000/")
-    WMS_THUMBNAIL_QUEUE: str = config("WMS_THUMBNAIL_QUEUE", default="wms_thumbnail_queue")
+    WMS_THUMBNAIL_QUEUE: str = config(
+        "WMS_THUMBNAIL_QUEUE", default="wms_thumbnail_queue"
+    )
     BROKER_URL: str = config("BROKER_URL", default="redis://localhost:6379/0")
     RESULT_BACKEND: str = config("RESULT_BACKEND", default="db+sqlite:///results.db")
     WORKDIR: str = config("WORKDIR", default="workdir")
     IMAGE_PATH: str = config("IMAGE_PATH", default="/thumbnails")
-    THUMB_HOST_BASE_PATH: str = config("THUMB_HOST_BASE_PATH", default='/')
+    THUMB_HOST_BASE_PATH: str = config("THUMB_HOST_BASE_PATH", default="/")
 
 
 class SQLiteSettings(DatabaseSettings):
     SQLITE_URI: str = config("SQLITE_URI", default="./sql_app.db")
     SQLITE_SYNC_PREFIX: str = config("SQLITE_SYNC_PREFIX", default="sqlite:///")
-    SQLITE_ASYNC_PREFIX: str = config("SQLITE_ASYNC_PREFIX", default="sqlite+aiosqlite:///")
+    SQLITE_ASYNC_PREFIX: str = config(
+        "SQLITE_ASYNC_PREFIX", default="sqlite+aiosqlite:///"
+    )
 
 
 class FirstUserSettings(BaseSettings):

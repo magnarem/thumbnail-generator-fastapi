@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thumbnail-generator-fastapi"
+description = "FastAPI endpoint for generate thumbnail url and thumbnails using celery"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "fastapi",
+    "celery",
+    "redis",
+    "pydantic",
+    "pydantic-settings",
+    "cartopy",
+    "owslib",
+    "uvicorn",
+]
+optional-dependencies.tests = [
+    "bandit",
+    "mypy",
+    "pytest",
+    "prospector",
+    "pymarkdownlnt",
+    "ruff",
+    "setuptools", # prospector requirement
+    "tox>=4.0.0",
+]
+
+dynamic = ["version"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["app"]
+
+[tool.setuptools.dynamic]
+version = {attr = "app.__version__"}
+
+# [project.scripts ]
+# slange = "hoggorm.berus:main"
+
+
+[tool.ruff.lint]
+fixable = ["I"]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+    "SIM",# flake8-simplify
+    "I",  # isort
+]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
