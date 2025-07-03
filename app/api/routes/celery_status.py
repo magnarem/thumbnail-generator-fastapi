@@ -1,5 +1,5 @@
 from celery.result import AsyncResult
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ...celery_worker.app import app as celery_app
 from ...core.logging import logger
@@ -15,13 +15,16 @@ router = APIRouter(tags=["celery"])
 async def get_task_result(task_id: str):
     task_result = AsyncResult(task_id, app=celery_app)
 
+    # If the task is unknown, return 404
+    if task_result.state == "PENDING" and not task_result.result:
+        raise HTTPException(status_code=404, detail="Task not found")
+
     if task_result.ready():
         result = task_result.get()
         status = task_result.status
         response_dict = {"status": status, "result": result}
         if status == "FAILURE":
             response_dict.update({"traceback": task_result.traceback})
-
         return response_dict
 
-    return {"status": "PENDING"}
+    return {"status": task_result.state}

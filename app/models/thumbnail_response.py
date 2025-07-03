@@ -10,6 +10,5 @@ class ThumbnailResponseData(BaseModel):
 
 
 class ThumbnailResponse(BaseModel):
-    data: ThumbnailResponseData
+    data: ThumbnailResponseData | None
     error: str | None
-    status_code: int

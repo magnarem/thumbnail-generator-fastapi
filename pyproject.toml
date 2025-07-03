@@ -21,8 +21,11 @@ dependencies = [
 optional-dependencies.tests = [
     "bandit",
     "mypy",
-    "pytest",
+    "pytest-xdist",
+    "pytest-cov",
     "prospector",
+    "sqlalchemy",
+    "httpx",
     "pymarkdownlnt",
     "ruff",
     "setuptools", # prospector requirement

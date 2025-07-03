@@ -144,7 +144,7 @@ def create_wms_thumbnail(
     wms_layers_mmd=None,
     thumbnail_extent=None,
 ):
-    """Create a base64 encoded thumbnail by means of cartopy.
+    """Create a png thumbnail by means of cartopy.
 
     Args:
         url: wms GetCapabilities document

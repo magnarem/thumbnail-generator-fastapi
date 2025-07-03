@@ -1,9 +1,5 @@
-import os
-import threading
-
-from fastapi import APIRouter
-
-from ...core.logging import logger
+# File: app/api/routes/root.py
+from fastapi import APIRouter, status, Response
 
 # import logging
 
@@ -13,12 +9,9 @@ router = APIRouter(tags=["root"])
 
 
 @router.get("/")
-async def root() -> dict:
+async def root() -> Response:
     """
-    Simple endpoint
+    Simple endpoint for checking that the app is running.
+    Returns a simple message.
     """
-    logger.debug(
-        f"Current thread: {threading.current_thread().name} \
-                {threading.current_thread().native_id} | PID: {os.getpid()}"
-    )
-    return {"message": "Hello, I am an fastAPI app using celery workers"}
+    return Response(content="API are up and running", status_code=status.HTTP_200_OK)
