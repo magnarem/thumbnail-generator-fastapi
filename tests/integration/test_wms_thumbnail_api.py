@@ -1,14 +1,9 @@
-import pytest
 from fastapi.testclient import TestClient
-from app.main import app
 from uuid import uuid4
 from datetime import datetime
 
-client = TestClient(app)
 
-
-@pytest.fixture
-def test_generate_wms_thumbnail_success():
+def test_generate_wms_thumbnail_success(client: TestClient):
     payload = {
         "id": str(uuid4()),
         "wms_url": "http://example.com/wms",
@@ -30,8 +25,7 @@ def test_generate_wms_thumbnail_success():
     assert data["data"]["message"] == "Celery task added to queue."
 
 
-@pytest.fixture
-def test_generate_wms_thumbnail_invalid_url():
+def test_generate_wms_thumbnail_invalid_url(client: TestClient):
     payload = {
         "id": str(uuid4()),
         "wms_url": "not-a-url",

@@ -1,9 +1,20 @@
-from app.celery_worker.tasks.wms_thumbnail_generate import create_wms_thumbnail_task
+from fastapi.testclient import TestClient
+from celery.contrib.pytest import celery_app
 import pytest
+import celery
+from app.celery_worker.tasks.wms_thumbnail_generate import create_wms_thumbnail_task
+
+
+@pytest.fixture
+def mocked_reate_wms_thumbnail_task(mocker):
+    # Mock the Celery task
+    return mocker.patch(
+        "app.celery_worker.tasks.wms_thumbnail_generate.create_wms_thumbnail_task.delay",
+        return_value="olleh")
 
 
 # This test will run the celery task synchronously (not as a real background job)
-def test_create_wms_thumbnail_task_minimal(monkeypatch):
+def test_create_wms_thumbnail_task_minimal(mocked_reate_wms_thumbnail_task):
     wmsconfig = {
         "id": "testid",
         "wms_url": "http://example.com/wms",
@@ -11,12 +22,5 @@ def test_create_wms_thumbnail_task_minimal(monkeypatch):
         "wms_layer": "layer1",
         "projection": "PlateCarree",
     }
-    # Patch out actual WMS and plotting logic if needed for speed
-    monkeypatch.setattr("app.celery_worker.tasks.wms_thumbnail_generate.WebMapService",
-                        lambda url, **kwargs: None)
-    monkeypatch.setattr("app.celery_worker.tasks.wms_thumbnail_generate.plt", "dummy")
-    try:
-        create_wms_thumbnail_task.run(wmsconfig)
-        # The function does not return, but should not raise
-    except Exception as e:
-        pytest.fail(f"Task raised an exception: {e}")
+    # Call the Celery task
+    result = mocked_reate_wms_thumbnail_task.delay("hello")

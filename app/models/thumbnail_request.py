@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, model_validator
 
 
 class Projections(str, Enum):
@@ -17,17 +17,16 @@ class WMSThumbRequest(BaseModel):
     wms_zoom_level: int = 0
     wms_timeout: int = 120
     add_coastlines: bool = True
-    projection: Projections | Projections.PlateCarree
+    projection: Projections = Projections.PlateCarree
     thumbnail_extent: list[float] | None
     wms_layers_mmd: list[str] = None
     start_date: datetime | None
 
-
-class WMSThumbnail:
-    def __init__(self):
-        self.wms_layer = None
-        self.wms_style = None
-        self.wms_zoom_level = None
-        self.wms_timeout = None
-        self.add_coastlines = None
-        self.thumbnail_extent = None
+    @model_validator(mode='before')
+    @classmethod
+    def validate_projection(cls, values):
+        if not isinstance(values['projection'], Projections):
+            raise ValueError(
+                "Invalid projection. Must be one of PlateCarree, Mercator or PolarStereographic."
+            )
+        return values
