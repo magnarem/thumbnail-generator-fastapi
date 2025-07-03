@@ -6,15 +6,15 @@ from app.celery_worker.tasks.wms_thumbnail_generate import create_wms_thumbnail_
 
 
 @pytest.fixture
-def mocked_reate_wms_thumbnail_task(mocker):
+def mocked_create_wms_thumbnail_task(mocker):
     # Mock the Celery task
     return mocker.patch(
         "app.celery_worker.tasks.wms_thumbnail_generate.create_wms_thumbnail_task.delay",
-        return_value="olleh")
+        return_value='{"message": "WMS Thumbnail generated successfully"}')
 
 
 # This test will run the celery task synchronously (not as a real background job)
-def test_create_wms_thumbnail_task_minimal(mocked_reate_wms_thumbnail_task):
+def test_create_wms_thumbnail_task_minimal(mocked_create_wms_thumbnail_task):
     wmsconfig = {
         "id": "testid",
         "wms_url": "http://example.com/wms",
@@ -23,4 +23,7 @@ def test_create_wms_thumbnail_task_minimal(mocked_reate_wms_thumbnail_task):
         "projection": "PlateCarree",
     }
     # Call the Celery task
-    result = mocked_reate_wms_thumbnail_task.delay("hello")
+    result = mocked_create_wms_thumbnail_task.delay(wmsconfig)
+    # Check if the Celery task was called once with the correct arguments
+    mocked_create_wms_thumbnail_task.assert_called_once_with(wmsconfig)
+    assert result.get() == '{"message": "WMS Thumbnail generated successfully"}'
